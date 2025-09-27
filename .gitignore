@@ -1,0 +1,13 @@
+.*
+!.gitignore
+
+*.png
+
+*.out
+*.pt
+*.log
+*.npy
+*.pyc
+run/
+*__pycache__/
+*tmp*
