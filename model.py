@@ -19,7 +19,7 @@ class TransformerModel(torch.nn.Module):
     def forward(self, hidden_states, hidden_mask):
         # hidden_states [batch, len, dim]
         # hidden_mask [batch, len]
-        full_mask = (1.0 - hidden_mask[:, None, None, :]) * torch.finfo(torch.float).min
+        full_mask = (1.0 - hidden_mask[:, None, None, :]) * torch.finfo(torch.float).min if hidden_mask is not None else None
         out = self.model(
             hidden_states=hidden_states,
             attention_mask=full_mask
