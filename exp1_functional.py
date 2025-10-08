@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional
 
 
-def compute_future_extremes(df,k=5):
+def compute_future_extremes(df,k=20):
     """
     输入: DataFrame with columns ['time', 'open', 'high', 'low', 'close', 'volume']
     输出: 新DataFrame，增加两列：
@@ -26,7 +26,7 @@ def compute_future_extremes(df,k=5):
     down_3pct = np.zeros(n, dtype=bool)
     
     # 预计算阈值：当前 close 的 ±3%
-    upper_threshold = close * 1.03   # 当前 close 上浮3%
+    upper_threshold = close * 1.10   # 当前 close 上浮3%
     lower_threshold = close * 0.97   # 当前 close 下跌3%
     
     # 对未来1~5步进行遍历（最多5次循环）
@@ -1251,3 +1251,15 @@ def compute_all_kline_indicators(df: pd.DataFrame,
     result_df = result_df.iloc[max_window:].reset_index(drop=True)
 
     return result_df
+
+
+if __name__ == "__main__":
+    import cloudpickle
+
+    serialized = cloudpickle.dumps(compute_future_extremes)
+    print(serialized)
+
+    f = cloudpickle.loads(serialized)
+    TEST_CSV = "/media/xavier/Samsumg/codes/blankly/scripts/test.csv"
+    test_df = pd.read_csv(TEST_CSV)
+    print(f(test_df))

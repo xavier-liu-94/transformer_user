@@ -1,15 +1,12 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from field_meta import *
-from scripts.exp1_functional import compute_all_kline_indicators, compute_future_extremes
+from core.field_meta import *
+from exp1_functional import compute_all_kline_indicators, compute_future_extremes
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from transformers.models.bert.modeling_bert import BertEncoder, BertConfig
 import torch
-from modules import SettledPositionalEncoding
+from core.modules import SettledPositionalEncoding
 from transformers import get_cosine_schedule_with_warmup
-from utils import TorchTrainingVisualizer
+from core.utils import TorchTrainingVisualizer
 from tqdm import tqdm
 
 
@@ -21,12 +18,12 @@ BATCH=2
 LEN=120
 
 
-train_df = pd.read_csv(TRAIN_CSV)
-test_df = pd.read_csv(TEST_CSV)
+train_df = pd.read_csv(TRAIN_CSV,index_col=0)
+test_df = pd.read_csv(TEST_CSV,index_col=0)
 train_feature = pd.merge(compute_all_kline_indicators(train_df), train_df, 'inner', 'time')
 test_feature = pd.merge(compute_all_kline_indicators(test_df), test_df, 'inner', 'time')
-train_target = compute_future_extremes(train_df)
-test_target = compute_future_extremes(test_df)
+train_target = compute_future_extremes(train_df)[['target_up_3pct_5','target_down_3pct_5','time']]
+test_target = compute_future_extremes(test_df)[['target_up_3pct_5','target_down_3pct_5','time']]
 train_target['target'] = (train_target['target_up_3pct_5'] & ~train_target['target_down_3pct_5']).astype(int)
 test_target['target'] = (test_target['target_up_3pct_5'] & ~test_target['target_down_3pct_5']).astype(int)
 
@@ -40,6 +37,8 @@ fea_col = []
 for col in full_train.columns:
     if col not in ['time', target_col] and 'target' not in col:
         fea_col.append(col)
+
+print(f'fea_col: {fea_col}')
 
 fm, pi = get_meta_process_info_from_dataframe(full_train[fea_col])
 
@@ -109,7 +108,7 @@ class WholeTransformer(torch.nn.Module):
 def train():
     ms = MySet(full_train)
     dl = DataLoader(ms, BATCH, True,drop_last=True)
-    ttv = TorchTrainingVisualizer("./run/", "seq_train")
+    ttv = TorchTrainingVisualizer("run/", "seq_train")
 
     model = WholeTransformer()
     model.cuda()
@@ -135,7 +134,7 @@ def train():
             loss.backward()
             opt.step()
             scheduler.step()
-        torch.save(model.state_dict(), "./run/seq.pth")
+        torch.save(model.state_dict(), "run/seq.pth")
     ttv.close()
 
 def test():
@@ -144,7 +143,7 @@ def test():
 
     model = WholeTransformer()
     model.cuda()
-    model.load_state_dict(torch.load("./run/seq.pth"))
+    model.load_state_dict(torch.load("run/seq.pth"))
     model.eval()
 
     y_gt = []
